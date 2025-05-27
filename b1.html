@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMEGA2 Counter Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Tailwind gray-900 */
+            color: #f3f4f6; /* Tailwind gray-100 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; 
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+        }
+        .card-counter-container {
+            background-color: #1f2937; /* Tailwind gray-800 */
+            padding: 1.5rem;
+            border-radius: 0.75rem; /* Tailwind rounded-xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+        }
+        .header-title {
+            font-size: 1.25rem; /* Tailwind text-xl */
+            font-weight: 600; /* Tailwind font-semibold */
+            margin-bottom: 1rem;
+        }
+        .count-display-container {
+            background-color: #374151; /* Tailwind gray-700 */
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .count-label {
+            font-size: 0.875rem; /* text-sm */
+            color: #d1d5db; /* gray-300 */
+            margin-bottom: 0.25rem;
+        }
+        .count-value {
+            font-size: 2.25rem; /* Tailwind text-4xl */
+            font-weight: 700; /* Tailwind font-bold */
+            color: #ffffff;
+        }
+        
+        .button-area {
+            display: grid;
+            grid-template-areas:
+                "left-col right-col"
+                "bottom-row bottom-row";
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .left-buttons {
+            grid-area: left-col;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .right-buttons {
+            grid-area: right-col;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .bottom-button-container {
+            grid-area: bottom-row;
+        }
+
+        .btn {
+            padding: 0.75rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            border: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 70px; 
+            width: 100%; 
+        }
+        .btn .shortcut {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 0.25rem;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .btn:disabled {
+            background-color: #4b5563 !important; /* Ensure disabled style overrides others */
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Button Colors */
+        .btn-minus2 { background-color: #dc2626; } /* red-600 (Dark Red) */
+        .btn-minus2:hover:not(:disabled) { background-color: #b91c1c; } 
+        .btn-plus2 { background-color: #16a34a; } /* green-600 (Dark Green) */
+        .btn-plus2:hover:not(:disabled) { background-color: #15803d; } 
+        .btn-minus1 { background-color: #ef4444; } /* red-500 (Light Red) */
+        .btn-minus1:hover:not(:disabled) { background-color: #dc2626; } 
+        .btn-zero { background-color: #eab308; } /* yellow-500 (Yellow) */
+        .btn-zero:hover:not(:disabled) { background-color: #ca8a04; } 
+        .btn-plus1 { background-color: #22c55e; } /* green-500 (Light Green) */
+        .btn-plus1:hover:not(:disabled) { background-color: #16a34a; } 
+
+        .action-buttons-row {
+            display: flex;
+            gap: 0.75rem; /* space between reset and undo */
+            margin-top: 0.75rem;
+        }
+
+        .btn-reset, .btn-undo {
+            background-color: #6b7280; /* gray-500 */
+            flex-grow: 1; /* Allow buttons to share space */
+        }
+        .btn-reset:hover:not(:disabled), .btn-undo:hover:not(:disabled) {
+            background-color: #4b5563; /* gray-600 */
+        }
+        .btn-undo {
+            background-color: #d97706; /* amber-600 */
+        }
+        .btn-undo:hover:not(:disabled) {
+            background-color: #b45309; /* amber-700 */
+        }
+
+
+        .btn-ai-tip {
+            background-color: #8b5cf6; /* violet-500 */
+            width: 100%;
+            margin-top: 0.75rem;
+        }
+        .btn-ai-tip:hover:not(:disabled) {
+            background-color: #7c3aed; /* violet-600 */
+        }
+        
+        .ai-tip-container {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #374151; 
+            border-radius: 0.5rem;
+            min-height: 60px; 
+            text-align: left;
+            color: #e5e7eb; 
+            font-size: 0.875rem;
+            display: none; 
+        }
+        .ai-tip-container.loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af; 
+        }
+        .ai-tip-container p {
+            margin: 0;
+        }
+
+        .history-container {
+            margin-top: 1.5rem;
+            width: 100%;
+            background-color: #374151; 
+            border-radius: 0.5rem;
+            padding: 1rem;
+            max-height: 150px; 
+            overflow-y: auto;
+            text-align: left;
+        }
+        .history-container h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #e5e7eb; 
+        }
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .history-list li {
+            font-size: 0.875rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #4b5563; 
+        }
+        .history-list li:last-child {
+            border-bottom: none;
+        }
+
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .message-box-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .message-box {
+            background-color: #1f2937; 
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            color: #f3f4f6; 
+            max-width: 300px;
+        }
+        .message-box p {
+            margin-bottom: 1rem;
+        }
+        .message-box button {
+            background-color: #3b82f6; 
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+        }
+        .message-box button:hover {
+            background-color: #2563eb; 
+        }
+    </style>
+</head>
+<body>
+    <div class="card-counter-container">
+        <h1 class="header-title">This is the OMEGA2 counter !</h1>
+        
+        <div class="count-display-container">
+            <div class="count-label">Window Count</div>
+            <div id="windowCountDisplay" class="count-value">0</div>
+        </div>
+        
+        <div class="button-area">
+            <div class="left-buttons">
+                <button id="btnMinus2" class="btn btn-minus2">Minus 2 (10-K)<span class="shortcut">[Q]</span></button>
+                <button id="btnMinus1" class="btn btn-minus1">Minus 1 (9)<span class="shortcut">[A]</span></button>
+            </div>
+            <div class="right-buttons">
+                <button id="btnPlus2" class="btn btn-plus2">Plus 2 (4,5,6)<span class="shortcut">[E]</span></button>
+                <button id="btnPlus1" class="btn btn-plus1">Plus 1 (2,3,7)<span class="shortcut">[D]</span></button>
+            </div>
+            <div class="bottom-button-container">
+                <button id="btnZero" class="btn btn-zero">Zero (8,A)<span class="shortcut">[S]</span></button>
+            </div>
+        </div>
+
+        <button id="aiTipBtn" class="btn btn-ai-tip">✨ Get Strategy Tip</button>
+        
+        <div class="action-buttons-row">
+            <button id="resetBtn" class="btn btn-reset">Reset All</button>
+            <button id="undoBtn" class="btn btn-undo">↩️ Undo Last</button>
+        </div>
+
+
+        <div id="aiTipDisplay" class="ai-tip-container">
+            <p id="aiTipText">AI generated tip will appear here.</p>
+        </div>
+
+        <div id="historyContainer" class="history-container">
+            <h3 id="historyTitle">Entry History:</h3> 
+            <ul id="historyList">
+                </ul>
+        </div>
+         <p class="text-xs text-gray-500 mt-4">
+            <strong>Note:</strong> This is a frontend demonstration. Card counting logic and AI API calls are client-side. For an Omega2, these would be on a Python backend.
+        </p>
+    </div>
+
+    <div id="messageBoxOverlay" class="message-box-overlay">
+        <div class="message-box">
+            <p id="messageBoxText"></p>
+            <button id="messageBoxOk">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const windowCountDisplay = document.getElementById('windowCountDisplay');
+        const historyList = document.getElementById('historyList');
+        const historyContainer = document.getElementById('historyContainer'); 
+        const historyTitle = document.getElementById('historyTitle'); 
+
+        const btnMinus2 = document.getElementById('btnMinus2');
+        const btnPlus2 = document.getElementById('btnPlus2');
+        const btnMinus1 = document.getElementById('btnMinus1');
+        const btnZero = document.getElementById('btnZero');
+        const btnPlus1 = document.getElementById('btnPlus1');
+        const resetBtn = document.getElementById('resetBtn');
+        const aiTipBtn = document.getElementById('aiTipBtn');
+        const aiTipDisplay = document.getElementById('aiTipDisplay');
+        const aiTipText = document.getElementById('aiTipText');
+        const undoBtn = document.getElementById('undoBtn'); // New Undo Button
+
+        const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+        const messageBoxText = document.getElementById('messageBoxText');
+        const messageBoxOk = document.getElementById('messageBoxOk');
+
+        // --- State ---
+        let windowCount = 0;
+        // entryHistory stores objects: { timestamp: number, text: string, previousCount: number, value: number }
+        let entryHistory = []; 
+        let isAILoading = false;
+        let historyUpdateInterval; 
+
+        // --- Gemini API Configuration ---
+        const GEMINI_API_KEY = ""; 
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+        // --- Functions ---
+        function showMessage(message) {
+            messageBoxText.textContent = message;
+            messageBoxOverlay.classList.add('active');
+        }
+
+        messageBoxOk.addEventListener('click', () => {
+            messageBoxOverlay.classList.remove('active');
+        });
+        
+        function formatTimeAgo(timestamp, now = Date.now()) {
+            const seconds = Math.round((now - timestamp) / 1000);
+            if (seconds < 1) return "just now";
+            if (seconds < 60) return `${seconds}s ago`;
+            const minutes = Math.round(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.round(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            const days = Math.round(hours / 24);
+            return `${days}d ago`;
+        }
+
+        function updateDisplay() {
+            windowCountDisplay.textContent = windowCount;
+            if (windowCount > 0) {
+                windowCountDisplay.style.color = '#34d399'; 
+            } else if (windowCount < 0) {
+                windowCountDisplay.style.color = '#f87171'; 
+            } else {
+                windowCountDisplay.style.color = '#ffffff'; 
+            }
+
+            historyTitle.textContent = `Entry History (${entryHistory.length} entries):`;
+
+            historyList.innerHTML = ''; 
+            const nowForDisplay = Date.now(); 
+
+            if (entryHistory.length === 0) {
+                historyContainer.style.display = 'none'; 
+            } else {
+                historyContainer.style.display = 'block'; 
+                entryHistory.slice().reverse().forEach(entry => { 
+                    const listItem = document.createElement('li');
+                    const timeAgo = formatTimeAgo(entry.timestamp, nowForDisplay);
+                    listItem.textContent = `${timeAgo}: ${entry.text}`; 
+                    
+                    switch (entry.value) {
+                        case -2: listItem.style.color = '#dc2626'; break;
+                        case -1: listItem.style.color = '#ef4444'; break;
+                        case 2:  listItem.style.color = '#16a34a'; break;
+                        case 1:  listItem.style.color = '#22c55e'; break;
+                        case 0:  listItem.style.color = '#eab308'; break;
+                        default: listItem.style.color = '#d1d5db';
+                    }
+                    historyList.appendChild(listItem);
+                });
+            }
+            // Update AI button state
+            aiTipBtn.disabled = isAILoading;
+            aiTipBtn.textContent = isAILoading ? '✨ Getting Tip...' : '✨ Get Strategy Tip';
+            
+            // Update Undo button state
+            undoBtn.disabled = entryHistory.length === 0;
+        }
+
+        function addEntryToHistory(description, valueChange, previousCountValue) {
+            const now = Date.now();
+            entryHistory.push({
+                timestamp: now,
+                text: description,
+                previousCount: previousCountValue, 
+                value: valueChange 
+            });
+            // Optional: Limit history size
+            // if (entryHistory.length > 50) { // Example limit
+            //     entryHistory.shift(); 
+            // }
+            updateDisplay(); 
+        }
+        
+        function handleInput(valueChange, description) {
+            const previousCountValue = windowCount; // Capture count before change
+            windowCount += valueChange;
+            addEntryToHistory(description, valueChange, previousCountValue); 
+        }
+
+        function handleUndo() {
+            if (entryHistory.length === 0) {
+                showMessage("Nothing to undo.");
+                return;
+            }
+            const lastEntry = entryHistory.pop(); // Remove the last entry
+            if (lastEntry) {
+                windowCount = lastEntry.previousCount; // Restore the count
+                showMessage(`Undid: ${lastEntry.text}`);
+            }
+            updateDisplay();
+            console.log("Undo button pressed. History:", entryHistory, "Current Count:", windowCount);
+        }
+
+
+        async function fetchStrategyTip() {
+            if (isAILoading) return;
+            isAILoading = true;
+            aiTipDisplay.style.display = 'flex'; 
+            aiTipDisplay.classList.add('loading');
+            aiTipText.textContent = 'Fetching tip from AI...';
+            updateDisplay(); 
+
+            const prompt = `The current Omega II card count in a game of Blackjack is ${windowCount}. Based on this count, what is a general betting strategy suggestion for a player? Keep the advice very brief (1-2 sentences) and practical.`;
+
+            try {
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }]
+                };
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Gemini API Error:', errorData);
+                    throw new Error(`API request failed with status ${response.status}: ${errorData?.error?.message || 'Unknown error'}`);
+                }
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    aiTipText.textContent = text;
+                } else {
+                    aiTipText.textContent = 'Could not retrieve a tip at this time. The response structure was unexpected.';
+                    console.error('Unexpected API response structure:', result);
+                }
+            } catch (error) {
+                console.error('Error fetching strategy tip:', error);
+                aiTipText.textContent = `Error: ${error.message}. Please try again.`;
+                showMessage(`Failed to get strategy tip: ${error.message}`);
+            } finally {
+                isAILoading = false;
+                aiTipDisplay.classList.remove('loading');
+                updateDisplay(); 
+            }
+        }
+
+        // --- Event Listeners for Buttons ---
+        btnMinus2.addEventListener('click', () => handleInput(-2, "10, J, Q, K (-2)"));
+        btnPlus2.addEventListener('click', () => handleInput(2, "4, 5, 6 (+2)"));
+        btnMinus1.addEventListener('click', () => handleInput(-1, "9 (-1)"));
+        btnZero.addEventListener('click', () => handleInput(0, "8, Ace (0)")); 
+        btnPlus1.addEventListener('click', () => handleInput(1, "2, 3, 7 (+1)"));
+        undoBtn.addEventListener('click', handleUndo); // Event listener for Undo
+
+        resetBtn.addEventListener('click', () => {
+            windowCount = 0;
+            entryHistory = [];
+            aiTipText.textContent = 'AI generated tip will appear here.';
+            aiTipDisplay.style.display = 'none'; 
+            updateDisplay();
+            showMessage("Count and history have been reset.");
+            console.log("Reset button pressed.");
+        });
+
+        aiTipBtn.addEventListener('click', fetchStrategyTip);
+
+        // --- Keyboard Shortcuts ---
+        document.addEventListener('keydown', (event) => {
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return; 
+            }
+            if (messageBoxOverlay.classList.contains('active')) { // Don't trigger shortcuts if message box is open
+                if (event.key === 'Enter' || event.key === 'Escape') {
+                    messageBoxOk.click(); // Allow Enter/Escape to close message box
+                }
+                return;
+            }
+            switch (event.key.toUpperCase()) {
+                case 'Q': btnMinus2.click(); break;
+                case 'E': btnPlus2.click(); break;
+                case 'A': btnMinus1.click(); break;
+                case 'S': btnZero.click(); break;
+                case 'D': btnPlus1.click(); break;
+                case 'T': 
+                    if (!aiTipBtn.disabled) aiTipBtn.click();
+                    break;
+                case 'Z': // Shortcut for Undo (Ctrl+Z or Cmd+Z might be too complex without library)
+                    if (!undoBtn.disabled) undoBtn.click();
+                    break;
+            }
+        });
+
+        // --- Initial Setup & Continuous Update ---
+        updateDisplay(); 
+        
+        if (historyUpdateInterval) {
+            clearInterval(historyUpdateInterval);
+        }
+        historyUpdateInterval = setInterval(updateDisplay, 1000); 
+
+        console.log("OMEGA2 Card Counter Initialized with Undo Functionality");
+    </script>
+</body>
+</html>
