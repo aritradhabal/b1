@@ -49,6 +49,11 @@
             font-weight: 700; /* Tailwind font-bold */
             color: #ffffff;
         }
+        .window-info {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 0.5rem;
+        }
         
         .button-area {
             display: grid;
@@ -137,7 +142,6 @@
             background-color: #b45309; /* amber-700 */
         }
 
-
         .btn-ai-tip {
             background-color: #8b5cf6; /* violet-500 */
             width: 100%;
@@ -197,6 +201,10 @@
         .history-list li:last-child {
             border-bottom: none;
         }
+        .history-list li.removed {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
 
         .message-box-overlay {
             position: fixed;
@@ -244,11 +252,12 @@
 </head>
 <body>
     <div class="card-counter-container">
-        <h1 class="header-title">This is the OMEGA2 counter !</h1>
+        <h1 class="header-title">OMEGA2 Counter - 16 Card Window</h1>
         
         <div class="count-display-container">
             <div class="count-label">Window Count</div>
             <div id="windowCountDisplay" class="count-value">0</div>
+            <div id="windowInfo" class="window-info">Cards in window: 0 / 16</div>
         </div>
         
         <div class="button-area">
@@ -272,18 +281,16 @@
             <button id="undoBtn" class="btn btn-undo">↩️ Undo Last</button>
         </div>
 
-
         <div id="aiTipDisplay" class="ai-tip-container">
             <p id="aiTipText">AI generated tip will appear here.</p>
         </div>
 
         <div id="historyContainer" class="history-container">
-            <h3 id="historyTitle">Entry History:</h3> 
-            <ul id="historyList">
-                </ul>
+            <h3 id="historyTitle">Card Window History:</h3> 
+            <ul id="historyList"></ul>
         </div>
          <p class="text-xs text-gray-500 mt-4">
-            <strong>Note:</strong> This is a frontend demonstration. Card counting logic and AI API calls are client-side. For an Omega2, these would be on a Python backend.
+            <strong>Note:</strong> This counter maintains a sliding window of 16 cards. When you add the 17th card, the oldest card is automatically removed from the count.
         </p>
     </div>
 
@@ -297,6 +304,7 @@
     <script>
         // --- DOM Elements ---
         const windowCountDisplay = document.getElementById('windowCountDisplay');
+        const windowInfo = document.getElementById('windowInfo');
         const historyList = document.getElementById('historyList');
         const historyContainer = document.getElementById('historyContainer'); 
         const historyTitle = document.getElementById('historyTitle'); 
@@ -310,7 +318,7 @@
         const aiTipBtn = document.getElementById('aiTipBtn');
         const aiTipDisplay = document.getElementById('aiTipDisplay');
         const aiTipText = document.getElementById('aiTipText');
-        const undoBtn = document.getElementById('undoBtn'); // New Undo Button
+        const undoBtn = document.getElementById('undoBtn');
 
         const messageBoxOverlay = document.getElementById('messageBoxOverlay');
         const messageBoxText = document.getElementById('messageBoxText');
@@ -318,8 +326,9 @@
 
         // --- State ---
         let windowCount = 0;
-        // entryHistory stores objects: { timestamp: number, text: string, previousCount: number, value: number }
-        let entryHistory = []; 
+        const WINDOW_SIZE = 16;
+        let cardWindow = []; // Array to store the last 16 card values
+        let entryHistory = []; // For display purposes only - shows all entries
         let isAILoading = false;
         let historyUpdateInterval; 
 
@@ -349,8 +358,15 @@
             return `${days}d ago`;
         }
 
+        function calculateWindowCount() {
+            return cardWindow.reduce((sum, value) => sum + value, 0);
+        }
+
         function updateDisplay() {
+            windowCount = calculateWindowCount();
             windowCountDisplay.textContent = windowCount;
+            windowInfo.textContent = `Cards in window: ${cardWindow.length} / ${WINDOW_SIZE}`;
+            
             if (windowCount > 0) {
                 windowCountDisplay.style.color = '#34d399'; 
             } else if (windowCount < 0) {
@@ -359,7 +375,7 @@
                 windowCountDisplay.style.color = '#ffffff'; 
             }
 
-            historyTitle.textContent = `Entry History (${entryHistory.length} entries):`;
+            historyTitle.textContent = `Card Window History (${entryHistory.length} total entries):`;
 
             historyList.innerHTML = ''; 
             const nowForDisplay = Date.now(); 
@@ -368,10 +384,17 @@
                 historyContainer.style.display = 'none'; 
             } else {
                 historyContainer.style.display = 'block'; 
-                entryHistory.slice().reverse().forEach(entry => { 
+                entryHistory.slice().reverse().forEach((entry, index) => { 
                     const listItem = document.createElement('li');
                     const timeAgo = formatTimeAgo(entry.timestamp, nowForDisplay);
-                    listItem.textContent = `${timeAgo}: ${entry.text}`; 
+                    listItem.textContent = `${timeAgo}: ${entry.text}`;
+                    
+                    // Mark entries that have been removed from the sliding window
+                    const actualIndex = entryHistory.length - 1 - index;
+                    if (actualIndex < entryHistory.length - WINDOW_SIZE) {
+                        listItem.classList.add('removed');
+                        listItem.title = "This card has been removed from the 16-card window";
+                    }
                     
                     switch (entry.value) {
                         case -2: listItem.style.color = '#dc2626'; break;
@@ -384,49 +407,53 @@
                     historyList.appendChild(listItem);
                 });
             }
+            
             // Update AI button state
             aiTipBtn.disabled = isAILoading;
             aiTipBtn.textContent = isAILoading ? '✨ Getting Tip...' : '✨ Get Strategy Tip';
             
             // Update Undo button state
-            undoBtn.disabled = entryHistory.length === 0;
+            undoBtn.disabled = cardWindow.length === 0;
         }
 
-        function addEntryToHistory(description, valueChange, previousCountValue) {
+        function addCardToWindow(valueChange, description) {
+            // Add new card to the window
+            cardWindow.push(valueChange);
+            
+            // Add to history for display
             const now = Date.now();
             entryHistory.push({
                 timestamp: now,
                 text: description,
-                previousCount: previousCountValue, 
                 value: valueChange 
             });
-            // Optional: Limit history size
-            // if (entryHistory.length > 50) { // Example limit
-            //     entryHistory.shift(); 
-            // }
+            
+            // If window exceeds size, remove oldest card
+            if (cardWindow.length > WINDOW_SIZE) {
+                const removedValue = cardWindow.shift();
+                // No confirmation message - process automatically
+            }
+            
             updateDisplay(); 
         }
         
         function handleInput(valueChange, description) {
-            const previousCountValue = windowCount; // Capture count before change
-            windowCount += valueChange;
-            addEntryToHistory(description, valueChange, previousCountValue); 
+            addCardToWindow(valueChange, description);
         }
 
         function handleUndo() {
-            if (entryHistory.length === 0) {
-                showMessage("Nothing to undo.");
+            if (cardWindow.length === 0) {
+                // Nothing to undo - do nothing
                 return;
             }
-            const lastEntry = entryHistory.pop(); // Remove the last entry
-            if (lastEntry) {
-                windowCount = lastEntry.previousCount; // Restore the count
-                showMessage(`Undid: ${lastEntry.text}`);
-            }
+            
+            // Remove the last card from the window
+            const removedCard = cardWindow.pop();
+            const removedEntry = entryHistory.pop();
+            
             updateDisplay();
-            console.log("Undo button pressed. History:", entryHistory, "Current Count:", windowCount);
+            console.log("Undo button pressed. Window:", cardWindow, "Current Count:", windowCount);
         }
-
 
         async function fetchStrategyTip() {
             if (isAILoading) return;
@@ -436,7 +463,7 @@
             aiTipText.textContent = 'Fetching tip from AI...';
             updateDisplay(); 
 
-            const prompt = `The current Omega II card count in a game of Blackjack is ${windowCount}. Based on this count, what is a general betting strategy suggestion for a player? Keep the advice very brief (1-2 sentences) and practical.`;
+            const prompt = `The current Omega II card count in a 16-card sliding window for Blackjack is ${windowCount} (with ${cardWindow.length} cards in the window). Based on this count, what is a general betting strategy suggestion for a player? Keep the advice very brief (1-2 sentences) and practical.`;
 
             try {
                 const payload = {
@@ -479,15 +506,15 @@
         btnMinus1.addEventListener('click', () => handleInput(-1, "9 (-1)"));
         btnZero.addEventListener('click', () => handleInput(0, "8, Ace (0)")); 
         btnPlus1.addEventListener('click', () => handleInput(1, "2, 3, 7 (+1)"));
-        undoBtn.addEventListener('click', handleUndo); // Event listener for Undo
+        undoBtn.addEventListener('click', handleUndo);
 
         resetBtn.addEventListener('click', () => {
             windowCount = 0;
+            cardWindow = [];
             entryHistory = [];
             aiTipText.textContent = 'AI generated tip will appear here.';
             aiTipDisplay.style.display = 'none'; 
             updateDisplay();
-            showMessage("Count and history have been reset.");
             console.log("Reset button pressed.");
         });
 
@@ -498,9 +525,9 @@
             if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
                 return; 
             }
-            if (messageBoxOverlay.classList.contains('active')) { // Don't trigger shortcuts if message box is open
+            if (messageBoxOverlay.classList.contains('active')) {
                 if (event.key === 'Enter' || event.key === 'Escape') {
-                    messageBoxOk.click(); // Allow Enter/Escape to close message box
+                    messageBoxOk.click();
                 }
                 return;
             }
@@ -513,7 +540,7 @@
                 case 'T': 
                     if (!aiTipBtn.disabled) aiTipBtn.click();
                     break;
-                case 'Z': // Shortcut for Undo (Ctrl+Z or Cmd+Z might be too complex without library)
+                case 'Z':
                     if (!undoBtn.disabled) undoBtn.click();
                     break;
             }
@@ -527,7 +554,7 @@
         }
         historyUpdateInterval = setInterval(updateDisplay, 1000); 
 
-        console.log("OMEGA2 Card Counter Initialized with Undo Functionality");
+        console.log("OMEGA2 Card Counter Initialized with 16-Card Sliding Window");
     </script>
 </body>
 </html>
